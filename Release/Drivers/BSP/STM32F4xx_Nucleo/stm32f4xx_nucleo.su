@@ -1,0 +1,6 @@
+../Drivers/BSP/STM32F4xx_Nucleo/stm32f4xx_nucleo.c:81:9:BSP_GetVersion	0	static
+../Drivers/BSP/STM32F4xx_Nucleo/stm32f4xx_nucleo.c:134:9:BSP_COM_DeInit	8	static
+../Drivers/BSP/STM32F4xx_Nucleo/stm32f4xx_nucleo.c:171:26:MX_USART2_UART_Init	8	static
+../Drivers/BSP/STM32F4xx_Nucleo/stm32f4xx_nucleo.c:95:9:BSP_COM_Init	56	static
+../Drivers/BSP/STM32F4xx_Nucleo/stm32f4xx_nucleo.c:273:9:BSP_COM_SelectLogPort	0	static
+../Drivers/BSP/STM32F4xx_Nucleo/stm32f4xx_nucleo.c:304:6:__io_putchar	24	static

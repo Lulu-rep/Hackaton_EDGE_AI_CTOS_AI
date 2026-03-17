@@ -1,0 +1,6 @@
+stm32f4xx_nucleo.c:81:9:BSP_GetVersion	1
+stm32f4xx_nucleo.c:134:9:BSP_COM_DeInit	2
+stm32f4xx_nucleo.c:171:26:MX_USART2_UART_Init	1
+stm32f4xx_nucleo.c:95:9:BSP_COM_Init	2
+stm32f4xx_nucleo.c:273:9:BSP_COM_SelectLogPort	2
+stm32f4xx_nucleo.c:304:6:__io_putchar	1
