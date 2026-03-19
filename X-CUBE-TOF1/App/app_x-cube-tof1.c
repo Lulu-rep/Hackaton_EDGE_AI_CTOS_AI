@@ -61,7 +61,7 @@ extern "C" {
 /* Private typedef -----------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
-#define SUCCESSIVE_MATRIX	1 						/* How many successive matrix we get in our neai_buffer. Possible values: power of 2 between 1 and 64 */
+#define SUCCESSIVE_MATRIX	8 						/* How many successive matrix we get in our neai_buffer. Possible values: power of 2 between 1 and 64 */
 #define MATRIX_RESOLUTION	64 						/* Possible values: 64 for 8x8 resolution, 16 for 4x4 resolution */
 #define AXES				1						/* Possible value: 1 (distance data) */
 #define NEAI_BUFFER_SIZE	SUCCESSIVE_MATRIX * MATRIX_RESOLUTION * AXES	/* The size of our NEAI buffer used for classification */
@@ -224,7 +224,7 @@ static void MX_53L5A1_ThresholdDetection_Process(void)
 
 			int ai_success = (anomaly_score > 90) ? 1 : 0;
 
-			printf("], \"ai_result\": %d, \"confidence\": %.2f}\n", ai_success, anomaly_score);
+			printf("], \"ai_result\": %d, \"confidence\": %d}\n", ai_success, anomaly_score);
 
 		}
 		    HAL_Delay(500);
