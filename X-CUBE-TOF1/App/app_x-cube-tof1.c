@@ -77,7 +77,7 @@ volatile uint8_t ToF_EventDetected = 0;
 enum neai_state neai_status = 0;
 float neai_buffer[NEAI_BUFFER_SIZE] = {0};
 uint8_t anomaly_score = 0; // Score de similarité entre 0 et 100
-uint8_t learning_mode = 1; // 1 = Phase d'apprentissage, 0 = Phase de détection
+uint8_t learning_mode = 0; // 1 = Phase d'apprentissage, 0 = Phase de détection
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -171,7 +171,7 @@ static void MX_53L5A1_ThresholdDetection_Process(void)
     while(1);
   }
 
-  neai_status = neai_anomalydetection_init(false);
+  neai_status = neai_anomalydetection_init(true);
   if(neai_status != NEAI_OK) {
       printf("ERROR NEAI Anomaly Detection init\r\n");
       while(1);
@@ -217,20 +217,32 @@ static void MX_53L5A1_ThresholdDetection_Process(void)
 			/* L'IA compare la mesure au modèle parfait */
 			neai_status = neai_anomalydetection_detect(neai_buffer, &anomaly_score);
 
-			if (anomaly_score > 90) {
-				printf("Piece OK ! Score : %d/100\r\n", anomaly_score);
-			} else {
-				printf("ANOMALIE DETECTEE ! Score : %d/100\r\n", anomaly_score);
-			}
+			printf("{\"matrix\": [");
+			for (uint16_t i = 0; i < NEAI_BUFFER_SIZE; i++) {
+				printf("%.1f ", neai_buffer[i]);
+				}
+
+			int ai_success = (anomaly_score > 90) ? 1 : 0;
+
+			printf("], \"ai_result\": %d, \"confidence\": %.2f}\n", ai_success, anomaly_score);
+
 		}
 		    HAL_Delay(500);
 		}
 		else {
-			/* Print the whole buffer to the serial in order to log data */
-			for (uint16_t i = 0; i < NEAI_BUFFER_SIZE; i++) {
-				printf("%.1f ", neai_buffer[i]);
-			}
-			printf("\r\n");
+		    /* Send data in JSON format for the ToF Viewer */
+		    printf("{\"matrix\": [");
+		    for (uint16_t i = 0; i < NEAI_BUFFER_SIZE; i++) {
+
+		    	printf("%.1f ", neai_buffer[i]);
+
+		    }
+
+		    // Hardcoded AI results for testing the dashboard
+		    int test_ai_result = 1;       // 1 = Conforme, 0 = Non conforme
+		    float test_confidence = 0.98; // 98% confidence
+
+		    printf("], \"ai_result\": %d, \"confidence\": %.2f}\n", test_ai_result, test_confidence);
 		}
 		/* Reset ToF event variable when log has been done successfully */
 		ToF_EventDetected = 0;
