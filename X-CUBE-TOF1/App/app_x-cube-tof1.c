@@ -61,13 +61,13 @@ extern "C" {
 /* Private typedef -----------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
-#define SUCCESSIVE_MATRIX	8						/* How many successive matrix we get in our neai_buffer. Possible values: power of 2 between 1 and 64 */
+#define SUCCESSIVE_MATRIX	1 						/* How many successive matrix we get in our neai_buffer. Possible values: power of 2 between 1 and 64 */
 #define MATRIX_RESOLUTION	64 						/* Possible values: 64 for 8x8 resolution, 16 for 4x4 resolution */
 #define AXES				1						/* Possible value: 1 (distance data) */
 #define NEAI_BUFFER_SIZE	SUCCESSIVE_MATRIX * MATRIX_RESOLUTION * AXES	/* The size of our NEAI buffer used for classification */
-#define MIN_THRESHOLD		100						/* Minimum distance in mm between sensor & object to detect. Possible values: 40 to 4000 */
-#define MAX_THRESHOLD		400 					/* Maximum distance in mm between sensor & object to detect. Possible values: 40 to 4000 */
-#define NEAI_MODE			0						/* Possible values: 0 for data logging mode, 1 for NanoEdgeAI classification mode */
+#define MIN_THRESHOLD		30						/* Minimum distance in mm between sensor & object to detect. Possible values: 40 to 4000 */
+#define MAX_THRESHOLD		220 					/* Maximum distance in mm between sensor & object to detect. Possible values: 40 to 4000 */
+#define NEAI_MODE			1						/* Possible values: 0 for data logging mode, 1 for NanoEdgeAI classification mode */
 
 /* Private variables ---------------------------------------------------------*/
 static RANGING_SENSOR_Capabilities_t Cap;
@@ -76,8 +76,8 @@ static int32_t status = 0;
 volatile uint8_t ToF_EventDetected = 0;
 enum neai_state neai_status = 0;
 float neai_buffer[NEAI_BUFFER_SIZE] = {0};
-int id_class = 0; // Point to id class (see argument of neai_classification fct)
-float output_class_buffer[NEAI_NUMBER_OF_CLASSES]; // Buffer of class probabilities
+uint8_t anomaly_score = 0; // Score de similarité entre 0 et 100
+uint8_t learning_mode = 1; // 1 = Phase d'apprentissage, 0 = Phase de détection
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -171,10 +171,10 @@ static void MX_53L5A1_ThresholdDetection_Process(void)
     while(1);
   }
 
-  neai_status = neai_classification_init();
+  neai_status = neai_anomalydetection_init(false);
   if(neai_status != NEAI_OK) {
-	  printf("ERROR NEAI classification init\r\n");
-	  while(1);
+      printf("ERROR NEAI Anomaly Detection init\r\n");
+      while(1);
   }
 
   /* Reset ToF event variable to avoid starting log at boot */
@@ -202,10 +202,28 @@ static void MX_53L5A1_ThresholdDetection_Process(void)
 		}
 
 		if (NEAI_MODE) {
-			/* Call NEAI classifier function in order to identify the phenomenom */
-			neai_status = neai_classification(neai_buffer, output_class_buffer, &id_class);
-			printf("Class found: %s\r\n", neai_get_class_name(id_class));
-			HAL_Delay(500);
+			static uint32_t count = 0; // Compteur de tirs
+
+			if (learning_mode == 1) {
+			    neai_status = neai_anomalydetection_learn(neai_buffer);
+			    count++;
+			    printf("Apprentissage : %ld / 50\r\n", count);
+
+			    if (count >= 50) {
+			        learning_mode = 0; // On bascule en détection
+			        printf("--- APPRENTISSAGE TERMINE : Passage en Mode Detection ---\r\n");
+			    }
+			} else {
+			/* L'IA compare la mesure au modèle parfait */
+			neai_status = neai_anomalydetection_detect(neai_buffer, &anomaly_score);
+
+			if (anomaly_score > 90) {
+				printf("Piece OK ! Score : %d/100\r\n", anomaly_score);
+			} else {
+				printf("ANOMALIE DETECTEE ! Score : %d/100\r\n", anomaly_score);
+			}
+		}
+		    HAL_Delay(500);
 		}
 		else {
 			/* Print the whole buffer to the serial in order to log data */

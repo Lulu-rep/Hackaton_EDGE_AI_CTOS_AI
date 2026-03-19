@@ -33,17 +33,14 @@ provided that the following conditions are met:
 #define NANOEDGEAI_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* NEAI ID */
-#define NEAI_ID "69a85df1859334ab8faa8729"
+#define NEAI_ID "69bbcfcd64974c2c408b285c"
 
 /* Input signal configuration */
 #define NEAI_INPUT_SIGNAL_LENGTH 512
 #define NEAI_INPUT_AXIS_NUMBER 1
-
-
-/* Classification configuration */
-#define NEAI_NUMBER_OF_CLASSES 2
 
 /* NEAI State Enum */
 enum neai_state {
@@ -61,26 +58,42 @@ enum neai_state {
 extern "C" {
 #endif
 
+/* ===== Anomaly Detection API ===== */
 /**
- * @brief  Must be called at the beginning to initialize the classification model by loading the
- *         pretrained model.
+ * @brief  Must be called at the beginning to initialize the anomaly detection model.
+ * @param  use_pretrained [in]  Set to true to use a pretrained model, false to start learning
+ *                              from scratch (pretrained model comes from NanoEdge AI Studio
+ *                              and is embedded in the library).
  * @return NEAI_OK on success, error code otherwise.
  */
-enum neai_state neai_classification_init(void);
+enum neai_state neai_anomalydetection_init(bool use_pretrained);
 
 /**
- * @brief  Perform classification on a new input sample by returning the probability for each
- *         class and the predicted class ID.
- * @param  in             [in]   Pointer to the input signal array
- *                               (size NEAI_INPUT_SIGNAL_LENGTH * NEAI_INPUT_AXIS_NUMBER).
- * @param  probabilities  [out]  Pointer to the output probabilities array
- *                               (size NEAI_NUMBER_OF_CLASSES).
- * @param  id_class       [out]  Pointer to the predicted class ID
- *                               (integer in range [0, NEAI_NUMBER_OF_CLASSES - 1]).
- * @return NEAI_OK on success.
+ * @brief  Learn patterns from a new input sample.
+ *         It can be called at any time after initialization.
+ *         At the beginning, multiple calls to build the knowledge base of the model.
+ *         Later as an additional learning step to complement the knowledge base.
+ * @param  in [in]  Pointer to the input signal array
+ *                  (size NEAI_INPUT_SIGNAL_LENGTH * NEAI_INPUT_AXIS_NUMBER).
+ * @return NEAI_LEARNING_DONE when minimum learning calls are reached.
+ *         NEAI_LEARNING_IN_PROGRESS if more learning calls are needed.
  *         Error code otherwise.
  */
-enum neai_state neai_classification(float *in, float *probabilities, int *id_class);
+enum neai_state neai_anomalydetection_learn(float *in);
+
+/**
+ * @brief  Perform anomaly detection on a new input sample by returning a similarity percentage.
+ *         The mathematical distance between the incoming sample and the learned patterns.
+ * @param  in         [in]   Pointer to the input signal array
+ *                           (size NEAI_INPUT_SIGNAL_LENGTH * NEAI_INPUT_AXIS_NUMBER).
+ * @param  similarity [out]  Pointer to the similarity percentage [0-100]
+ *                           (100 means completely similar, 0 means completely different).
+ * @return NEAI_OK on success.
+ *         NEAI_LEARNING_IN_PROGRESS if the model needs more learning calls (minimum learning
+ *                                   calls not reached).
+ *         Error code otherwise.
+ */
+enum neai_state neai_anomalydetection_detect(float *in, uint8_t *similarity);
 
 /* ===== Common getter functions ===== */
 /**
@@ -102,22 +115,6 @@ int neai_get_input_signal_size(void);
 int neai_get_axis_number(void);
 
 
-/* ===== Specific classification getter functions ===== */
-/**
- * @brief  Get the number of classes in the classification model.
- * @return Number of classes.
- */
-int neai_get_number_of_classes(void);
-
-/**
- * @brief  Get the class name for a given class ID.
- * @param  id_class [in]  Class ID
- *                        (integer in range [0, NEAI_NUMBER_OF_CLASSES - 1]).
- * @return Pointer to the class name string, or NULL if the ID is invalid.
- */
-const char* neai_get_class_name(int id_class);
-
-
 #ifdef __cplusplus
 }
 #endif
@@ -131,7 +128,7 @@ You may copy-paste them directly or rename variables as needed.
 WARNING: Respect the structures, types, and buffer sizes; only variable names may be changed.
 
 enum neai_state state;   // Captures return states from NEAI functions
-int id_class;   // Predicted class ID returned by classification function
+bool use_pretrained = false;   // Init function parameter: true = use pretrained model, false = learn from scratch
+uint8_t similarity;   // Similarity percentage returned by detect function
 float input_signal[NEAI_INPUT_SIGNAL_LENGTH * NEAI_INPUT_AXIS_NUMBER];   // Input signal buffer
-float probabilities[NEAI_NUMBER_OF_CLASSES];   // Output probabilities buffer returned by classification function
 ============= */
